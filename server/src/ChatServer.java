@@ -13,7 +13,7 @@ public class ChatServer implements TCPConnectionListener{
     }
 
     private final ArrayList<TCPConnection> connections = new ArrayList<>();
-    private final Map<TCPConnection, String> connectionsNames = new HashMap<>();
+    private final Map<String, TCPConnection> connectionsMap = new HashMap<>();
 
     private ChatServer(){
         System.out.println("Server running...");
@@ -21,7 +21,7 @@ public class ChatServer implements TCPConnectionListener{
             while(true){
                 try {
                     new TCPConnection(this, serverSocket.accept());
-                    System.out.println(serverSocket.getLocalSocketAddress());
+                    System.out.println("Connected: " + serverSocket.getLocalSocketAddress());
                 }catch (IOException | ClassNotFoundException e){
                     System.out.println("TCPConnection: " + e);
                 }
@@ -38,19 +38,37 @@ public class ChatServer implements TCPConnectionListener{
 
     @Override
     public synchronized void onReceiveMessage(TCPConnection tcpConnection, Message msg) {
-        if(msg.getType() == MessageType.TEXT){ sendToAllConnections(msg.getText()); }
+        System.out.println(tcpConnection.toString() + " " + msg.getType());
+        if(msg.getType() == MessageType.TEXT_FROM_USER){
+            tcpConnection.sendMessage(new Message(MessageType.TEXT_FROM_SERVER, msg.getText()));
+            connectionsMap.get(msg.getChatName()).sendMessage(new Message(MessageType.TEXT_FROM_SERVER, msg.getText()));
+        }
         else if(msg.getType() == MessageType.USER_NAME){
             connections.add(tcpConnection);
-            connectionsNames.put(tcpConnection, msg.getText());
-            sendToAllConnections("Client connected: " + msg.getText());
+            connectionsMap.put(msg.getText(), tcpConnection);
+            System.out.println("Пользователь добавлен: '" + msg.getText() + "'");
+        }
+        else if(msg.getType() == MessageType.FIND_USER){
+            if(connectionsMap.containsKey(msg.getText())) {
+                tcpConnection.sendMessage(new Message(MessageType.TEXT_FROM_SERVER, "Пользователь найден"));
+                tcpConnection.sendMessage(new Message(MessageType.USER_FOUND, msg.getText()));
+                connectionsMap.get(msg.getText()).sendMessage(
+                        new Message(MessageType.TEXT_FROM_SERVER, "Пользователь найден"));
+                connectionsMap.get(msg.getText()).sendMessage(
+                        new Message(MessageType.USER_FOUND, reverceConnectionsMap().get(tcpConnection)));
+            }
+            else {
+                tcpConnection.sendMessage(new Message(MessageType.TEXT_FROM_SERVER, "Пользователь c именем '"
+                        + msg.getText() + "' не найден"));
+            }
         }
     }
 
     @Override
     public synchronized void onDisconnect(TCPConnection tcpConnection) {
-        sendToAllConnections("Client disconnected: " + connectionsNames.remove(tcpConnection));
         connections.remove(tcpConnection);
-        connectionsNames.remove(tcpConnection);
+        connectionsMap.entrySet()
+                .removeIf(entry -> entry.getValue() == tcpConnection);
     }
 
     @Override
@@ -58,10 +76,11 @@ public class ChatServer implements TCPConnectionListener{
         System.out.println("TCPConnection exception: " + e);
     }
 
-    private void sendToAllConnections(String value){
-        System.out.println(value);
-        for (TCPConnection connection : connections) {
-            connection.sendMessage(new Message(value));
+    private Map<TCPConnection, String> reverceConnectionsMap(){
+        Map<TCPConnection, String> revConnectionsMap = new HashMap<>();
+        for(Map.Entry<String, TCPConnection> entry : connectionsMap.entrySet()){
+            revConnectionsMap.put(entry.getValue(), entry.getKey());
         }
+        return revConnectionsMap;
     }
 }
