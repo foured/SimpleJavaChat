@@ -6,38 +6,40 @@ public class TCPConnection {
     private final Socket socket;
     private final Thread rxTread;
     private final TCPConnectionListener eventListener;
-    private final BufferedReader in;
-    private final BufferedWriter out;
+    private final ObjectInputStream in;
+    private final ObjectOutputStream out;
 
-    public TCPConnection(TCPConnectionListener eventListener, String ipAddr, int port) throws IOException{
+    public TCPConnection(TCPConnectionListener eventListener, String ipAddr, int port) throws IOException, ClassNotFoundException{
         this(eventListener, new Socket(ipAddr, port));
     }
 
-    public TCPConnection(TCPConnectionListener eventListener, Socket socket) throws IOException {
+    public TCPConnection(TCPConnectionListener eventListener, Socket socket) throws IOException, ClassNotFoundException {
         this.socket = socket;
         this.eventListener = eventListener;
-        in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-        out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+        out = new ObjectOutputStream(socket.getOutputStream());
+        in = new ObjectInputStream(socket.getInputStream());
         rxTread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     eventListener.onConnectionRead(TCPConnection.this);
                     while(!rxTread.isInterrupted()) {
-                        String msg = in.readLine();
-                        eventListener.onReceiveString(TCPConnection.this, msg);
+                        Message msg = (Message) in.readObject();
+                        eventListener.onReceiveMessage(TCPConnection.this, msg);
                     }
-                }catch(IOException e){
+                }catch(IOException | ClassNotFoundException e){
                     eventListener.onException(TCPConnection.this, e);
+                }finally {
+                    eventListener.onDisconnect(TCPConnection.this);
                 }
             }
         });
         rxTread.start();
     }
 
-    public synchronized void sendString(String value){
+    public synchronized void sendMessage(Message value){
         try{
-            out.write(value + "\r\n");
+            out.writeObject(value);
             out.flush();
         } catch(IOException e){
             eventListener.onException(TCPConnection.this, e);

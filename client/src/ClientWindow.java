@@ -7,8 +7,8 @@ import java.io.IOException;
 
 public class ClientWindow extends JFrame implements ActionListener, TCPConnectionListener {
 
-    private static final String IP_ADDR = "192.168.137.1";
-    private static final int PORT = 8189;
+    private static String IP_ADDR = "192.168.0.18";
+    private static int PORT = 8189;
     public static final int WIDTH = 600;
     public static final int HEIGHT = 400;
 
@@ -28,6 +28,8 @@ public class ClientWindow extends JFrame implements ActionListener, TCPConnectio
     private TCPConnection  connection;
 
     private ClientWindow(){
+        //IP_ADDR = JOptionPane.showInputDialog(this, "Enter server ip");
+        //PORT = Integer.parseInt(JOptionPane.showInputDialog(this, "Enter port"));
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setSize(WIDTH, HEIGHT);
         setLocationRelativeTo(null);
@@ -47,7 +49,7 @@ public class ClientWindow extends JFrame implements ActionListener, TCPConnectio
         try {
             connection = new TCPConnection(this, IP_ADDR, PORT);
             System.out.println("connected");
-        }catch (IOException e){
+        }catch (IOException | ClassNotFoundException e){
             printMsg("Connection exception: " + e);
         }
     }
@@ -55,9 +57,9 @@ public class ClientWindow extends JFrame implements ActionListener, TCPConnectio
     @Override
     public void actionPerformed(ActionEvent e) {
         String msg = fieldInput.getText();
-        if(msg.equals("")) return;
+        if(msg.isEmpty()) return;
         fieldInput.setText(null);
-        connection.sendString(fieldNickname.getText() + ": " + msg);
+        connection.sendMessage(new Message(fieldNickname.getText() + ": " + msg));
     }
 
     @Override
@@ -66,8 +68,11 @@ public class ClientWindow extends JFrame implements ActionListener, TCPConnectio
     }
 
     @Override
-    public void onReceiveString(TCPConnection tcpConnection, String value) {
-        printMsg(value);
+    public void onReceiveMessage(TCPConnection tcpConnection, Message msg) {
+        if(msg.getType() == MessageType.TEXT) printMsg(msg.getText());
+        else if(msg.getType() == MessageType.REQUEST_USER_NAME){
+            connection.sendMessage(new Message(MessageType.USER_NAME, fieldNickname.getText()));
+        }
     }
 
     @Override
