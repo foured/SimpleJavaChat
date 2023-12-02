@@ -41,7 +41,8 @@ public class ChatServer implements TCPConnectionListener{
         System.out.println(tcpConnection.toString() + " " + msg.getType());
         if(msg.getType() == MessageType.TEXT_FROM_USER){
             tcpConnection.sendMessage(new Message(MessageType.TEXT_FROM_SERVER, msg.getText()));
-            connectionsMap.get(msg.getChatName()).sendMessage(new Message(MessageType.TEXT_FROM_SERVER, msg.getText()));
+            if(connectionsMap.containsKey(msg.getChatName()))
+                connectionsMap.get(msg.getChatName()).sendMessage(new Message(MessageType.TEXT_FROM_SERVER, msg.getText()));
         }
         else if(msg.getType() == MessageType.USER_NAME){
             connections.add(tcpConnection);
