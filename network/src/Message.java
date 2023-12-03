@@ -9,7 +9,7 @@ public class Message implements Serializable {
     public Message(MessageType messageType){
         /*
             Message types:
-                * USER_NAME
+                * REQUEST_USER_NAME
          */
 
         type = messageType;
@@ -20,7 +20,8 @@ public class Message implements Serializable {
     public Message(MessageType messageType, String value, String chatName){
         /*
             Message types:
-                * TEXT_FROM_USER, sender username, recipient username
+                * TEXT_FROM_USER, text, recipient username / chat name
+                * ADD_USER_TO_CHAT, username, chat name
          */
 
         type = messageType;
@@ -35,6 +36,8 @@ public class Message implements Serializable {
                 * USER_FOUND, username
                 * USER_NAME, username
                 * TEXT_FROM_SERVER, text
+                * CREATE_CHAT, chat name
+                * ADDED_TO_CHAT, chat name
          */
         type = messageType;
         text = value;

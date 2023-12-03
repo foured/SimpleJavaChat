@@ -4,5 +4,8 @@ public enum MessageType {
     REQUEST_USER_NAME,
     USER_NAME,
     FIND_USER,
-    USER_FOUND;
+    USER_FOUND,
+    CREATE_CHAT,
+    ADDED_TO_CHAT,
+    ADD_USER_TO_CHAT;
 }
