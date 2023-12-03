@@ -5,10 +5,6 @@ import java.util.*;
 public class ChatServer implements TCPConnectionListener{
     private static final int PORT = 8189;
     public static void main(String[] args) {
-        //Scanner scanner = new Scanner(System.in);
-        //System.out.println("Enter port: ");
-        //PORT = scanner.nextInt();
-
         new ChatServer();
     }
 
@@ -40,9 +36,11 @@ public class ChatServer implements TCPConnectionListener{
     public synchronized void onReceiveMessage(TCPConnection tcpConnection, Message msg) {
         System.out.println(tcpConnection.toString() + " " + msg.getType());
         if(msg.getType() == MessageType.TEXT_FROM_USER){
-            tcpConnection.sendMessage(new Message(MessageType.TEXT_FROM_SERVER, msg.getText()));
+            tcpConnection.sendMessage(new Message(MessageType.TEXT_FROM_USER, msg.getText(), msg.getChatName()));
             if(connectionsMap.containsKey(msg.getChatName()))
-                connectionsMap.get(msg.getChatName()).sendMessage(new Message(MessageType.TEXT_FROM_SERVER, msg.getText()));
+                connectionsMap.get(msg.getChatName())
+                        .sendMessage(new Message(MessageType.TEXT_FROM_USER, msg.getText(),
+                                reverceConnectionsMap().get(tcpConnection)));
         }
         else if(msg.getType() == MessageType.USER_NAME){
             connections.add(tcpConnection);
